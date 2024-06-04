@@ -1,6 +1,6 @@
 {
-    "name": "new-remove-comments",
-    "displayName": "Remove Comments",
+    "name": "clean-comments",
+    "displayName": "Clean Comments (Remove All Comments)",
     "description": "Remove all comments from your code at once! Unclutter and undocument your code in one go!",
     "version": "1.2.3",
     "publisher": "sumonst21",
