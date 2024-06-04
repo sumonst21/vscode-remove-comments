@@ -2,7 +2,7 @@
     "name": "clean-comments",
     "displayName": "Clean Comments (Remove All Comments)",
     "description": "Remove all comments from your code at once! Unclutter and undocument your code in one go!",
-    "version": "0.1.2.3",
+    "version": "0.0.1",
     "publisher": "sumonst21",
     "license": "MIT",
     "icon": "assets/icon.png",
