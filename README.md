@@ -30,7 +30,7 @@ Just copy-pasted some code from somewhere and it's obscenely documented with unn
 * Install the extension by searching for *Remove Comments* in the editor's 'Extensions' tab, or by launching VS Code Quick Open (<kbd>Ctrl</kbd>+<kbd>P</kbd>) and entering:
 
 ```txt
-ext install sumonst21.remove-comments
+ext install sumonst21.clean-comments
 ```
 
 * Once installed, remove comments in your code by opening the command palette (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>), entering "Remove all comments" and pressing enter.
