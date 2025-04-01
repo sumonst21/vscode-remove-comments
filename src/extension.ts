@@ -4,63 +4,47 @@ import { Parser } from './parser';
 export function activate(context: vscode.ExtensionContext) {
 
     let activeEditor: vscode.TextEditor;
-    let parser: Parser = new Parser();
+    const parser: Parser = new Parser();
 
-    let removeComments = function (n: number) {
-
-        if (!activeEditor || !parser.supportedLanguage) {
+    const removeComments = (removeSingleLine: boolean, removeMultiLine: boolean) => {
+        if (!activeEditor) {
+            vscode.window.showErrorMessage('No active text editor.');
             return;
         }
-
-        if (n === 0) {
-            parser.FindSingleLineComments(activeEditor);
-        }
-        else if (n === 1) {
-            parser.FindMultilineComments(activeEditor);
-        } else {
-            parser.FindSingleLineComments(activeEditor);
-            parser.FindMultilineComments(activeEditor);
-        }
-
-        vscode.workspace.applyEdit(parser.edit);
+        const languageId = activeEditor.document.languageId;
+        parser.removeComments(activeEditor, languageId, removeSingleLine, removeMultiLine)
+            .then(() => {
+                vscode.window.showInformationMessage('Comments removed.');
+            })
+            .catch((error) => {
+                vscode.window.showErrorMessage(`Error removing comments: ${error}`);
+            });
     };
 
-    // Register commands here
-
-    let removeAllCommentsCommand = vscode.commands.registerCommand('extension.removeAllComments', () => {
-
-        if (vscode.window.activeTextEditor) {
-            activeEditor = vscode.window.activeTextEditor;
-            parser.SetRegex(activeEditor, activeEditor.document.languageId);
-            removeComments(2);
+    const removeAllCommentsCommand = vscode.commands.registerCommand('extension.removeAllComments', () => {
+        activeEditor = vscode.window.activeTextEditor!;
+        if (activeEditor) {
+            removeComments(true, true);
         }
-
     });
 
-    let removeSingleLineCommentsCommand = vscode.commands.registerCommand('extension.removeSingleLineComments', () => {
-
-        if (vscode.window.activeTextEditor) {
-            activeEditor = vscode.window.activeTextEditor;
-            parser.SetRegex(activeEditor, activeEditor.document.languageId);
-            removeComments(0);
+    const removeSingleLineCommentsCommand = vscode.commands.registerCommand('extension.removeSingleLineComments', () => {
+        activeEditor = vscode.window.activeTextEditor!;
+        if (activeEditor) {
+            removeComments(true, false);
         }
-
     });
 
-    let removeMultilineCommentsCommand = vscode.commands.registerCommand('extension.removeMultilineComments', () => {
-
-        if (vscode.window.activeTextEditor) {
-            activeEditor = vscode.window.activeTextEditor;
-            parser.SetRegex(activeEditor, activeEditor.document.languageId);
-            removeComments(1);
+    const removeMultilineCommentsCommand = vscode.commands.registerCommand('extension.removeMultilineComments', () => {
+        activeEditor = vscode.window.activeTextEditor!;
+        if (activeEditor) {
+            removeComments(false, true);
         }
-
     });
 
     context.subscriptions.push(removeAllCommentsCommand);
     context.subscriptions.push(removeSingleLineCommentsCommand);
     context.subscriptions.push(removeMultilineCommentsCommand);
-
 }
 
 export function deactivate() { }

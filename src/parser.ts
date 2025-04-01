@@ -1,184 +1,229 @@
 import * as vscode from 'vscode';
 
-
+// Refactor the Parser class into a separate file (parser.ts)
 export class Parser {
+    private singleLineDelimiters: { [language: string]: string } = {};
+    private multiLineDelimiters: { [language: string]: { start: string; end: string } } = {};
+    private supportedLanguages: string[] = [];
 
-    private delimiters: string[] = [];
-    private removeRanges: boolean[] = [];
-    private multilineComments: boolean = false;
-    private config: any = vscode.workspace.getConfiguration('remove-comments').multilineComments;
-
-    public edit: vscode.WorkspaceEdit = new vscode.WorkspaceEdit();
-    public uri: any;
-    public supportedLanguage = true;
-
-    public SetRegex(activeEditor: vscode.TextEditor, languageCode: string) {
-
-        if (this.setDelimiter(languageCode)) {
-            this.edit = new vscode.WorkspaceEdit();
-            this.uri = activeEditor.document.uri;
-        } else {
-            vscode.window.showInformationMessage("Cannot remove comments : unknown language (" + languageCode + ")");
-        }
+    constructor() {
+        this.initializeDelimiters();
     }
 
-    public FindSingleLineComments(activeEditor: vscode.TextEditor): any {
-        for (var l = 0; l < activeEditor.document.lineCount; l++) {
-            let line = activeEditor.document.lineAt(l);
-            let matched = false;
-            for (var i = 0; i < this.delimiters.length; i++) {
-                if (!matched) {
-                    let expression = this.delimiters[i].replace(/\//ig, "\\/");
-                    let removeRange = this.removeRanges[i];
-                    //let regEx = new RegExp(expression, "ig"); // see bug #34 (https://github.com/plibither8/vscode-remove-comments/issues/34) https://regex101.com/r/1M3UCa/1
-                    // let regEx = new RegExp(expression + "(?=(?:[^\"'`]*\"[^\"'`]*\")*(?:[^\"'`]*'[^\"'`]*')*(?:[^\"'`]*`[^\"'`]*`)*[^\"'`]*$)", "igm"); // resolves bug #34 (https://regex101.com/r/4SE3O5/1)
-                    let regEx = new RegExp(expression + "(?=(?:[^\"'`]*\"[^\"'`]*\")*(?:[^\"'`]*'[^\"'`]*')*(?:[^\"'`]*`[^\"'`]*`)*[^\"'`]*$)(?!(\\s*#!))", "igm");
-                    let match = regEx.exec(line.text);
-                    if (match) {
-                        if (removeRange) {
-                            let startPos = new vscode.Position(l, match.index);
-                            let endPos = new vscode.Position(l, line.text.length);
-                            let range = new vscode.Range(startPos, endPos);
-                            this.edit.delete(this.uri, range);
-                            let n = activeEditor.document.getText(range);
-                            console.log("Removing : " + n);
-                        } else {
-                            let startPos = new vscode.Position(l, match.index);
-                            let endPos = new vscode.Position(l + 1, 0);
-                            let range = new vscode.Range(startPos, endPos);
-                            this.edit.delete(this.uri, range);
-                        }
-                        
-                        matched = true;
-                    }
-                }
+    private initializeDelimiters() {
+        // Single-line comment delimiters
+        this.singleLineDelimiters['al'] = '//';
+        this.singleLineDelimiters['c'] = '//';
+        this.singleLineDelimiters['cpp'] = '//';
+        this.singleLineDelimiters['csharp'] = '//';
+        this.singleLineDelimiters['css'] = '//';
+        this.singleLineDelimiters['dart'] = '//';
+        this.singleLineDelimiters['fsharp'] = '//';
+        this.singleLineDelimiters['go'] = '//';
+        this.singleLineDelimiters['haxe'] = '//';
+        this.singleLineDelimiters['java'] = '//';
+        this.singleLineDelimiters['javascript'] = '//';
+        this.singleLineDelimiters['javascriptreact'] = '//';
+        this.singleLineDelimiters['jsonc'] = '//';
+        this.singleLineDelimiters['kotlin'] = '//';
+        this.singleLineDelimiters['less'] = '//';
+        this.singleLineDelimiters['pascal'] = '//';
+        this.singleLineDelimiters['objectpascal'] = '//';
+        this.singleLineDelimiters['php'] = '//';
+        this.singleLineDelimiters['rust'] = '//';
+        this.singleLineDelimiters['scala'] = '//';
+        this.singleLineDelimiters['swift'] = '//';
+        this.singleLineDelimiters['typescript'] = '//';
+        this.singleLineDelimiters['typescriptreact'] = '//';
+        this.singleLineDelimiters['coffeescript'] = '#';
+        this.singleLineDelimiters['dockerfile'] = '#';
+        this.singleLineDelimiters['elixir'] = '#';
+        this.singleLineDelimiters['graphql'] = '#';
+        this.singleLineDelimiters['julia'] = '#';
+        this.singleLineDelimiters['makefile'] = '#';
+        this.singleLineDelimiters['perl'] = '#';
+        this.singleLineDelimiters['perl6'] = '#';
+        this.singleLineDelimiters['powershell'] = '#';
+        this.singleLineDelimiters['python'] = '#';
+        this.singleLineDelimiters['r'] = '#';
+        this.singleLineDelimiters['ruby'] = '#';
+        this.singleLineDelimiters['shellscript'] = '#';
+        this.singleLineDelimiters['yaml'] = '#';
+        this.singleLineDelimiters['ada'] = '--';
+        this.singleLineDelimiters['haskell'] = '--';
+        this.singleLineDelimiters['plsql'] = '--';
+        this.singleLineDelimiters['sql'] = '--';
+        this.singleLineDelimiters['lua'] = '--';
+        this.singleLineDelimiters['vb'] = "'";
+        this.singleLineDelimiters['erlang'] = '%';
+        this.singleLineDelimiters['latex'] = '%';
+        this.singleLineDelimiters['clojure'] = ';';
+        this.singleLineDelimiters['racket'] = ';';
+        this.singleLineDelimiters['lisp'] = ';';
+        this.singleLineDelimiters['terraform'] = '#';
+        this.singleLineDelimiters['fortran'] = '!';
+
+        // Multi-line comment delimiters
+        this.multiLineDelimiters['c'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['cpp'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['csharp'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['css'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['dart'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['go'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['haxe'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['java'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['javascript'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['javascriptreact'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['kotlin'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['less'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['objectpascal'] = { start: '(*', end: '*)' };
+        this.multiLineDelimiters['pascal'] = { start: '(*', end: '*)' };
+        this.multiLineDelimiters['php'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['rust'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['scala'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['swift'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['typescript'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['typescriptreact'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['html'] = { start: '<!--', end: '-->' };
+        this.multiLineDelimiters['xml'] = { start: '<!--', end: '-->' };
+        this.multiLineDelimiters['graphql'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['julia'] = { start: '#=', end: '= #' };
+        this.multiLineDelimiters['makefile'] = { start: '#', end: '#' };
+        this.multiLineDelimiters['perl'] = { start: '=begin', end: '=cut' };
+        this.multiLineDelimiters['powershell'] = { start: '<#', end: '#>' };
+        this.multiLineDelimiters['python'] = { start: "'''", end: "'''" };
+        this.multiLineDelimiters['r'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['ruby'] = { start: '=begin', end: '=end' };
+        this.multiLineDelimiters['shellscript'] = { start: ':', end: ':' };
+        this.multiLineDelimiters['yaml'] = { start: '#', end: '#' };
+        this.multiLineDelimiters['ada'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['haskell'] = { start: '{-', end: '-}' };
+        this.multiLineDelimiters['plsql'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['sql'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['erlang'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['latex'] = { start: '\\begin{comment}', end: '\\end{comment}' };
+        this.multiLineDelimiters['clojure'] = { start: '#_', end: '_#' };
+        this.multiLineDelimiters['racket'] = { start: '#|', end: '|#' };
+        this.multiLineDelimiters['lisp'] = { start: '#|', end: '|#' };
+        this.multiLineDelimiters['coffeescript'] = { start: '###', end: '###' };
+        this.multiLineDelimiters['dockerfile'] = { start: '###', end: '###' };
+        this.multiLineDelimiters['elixir'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['terraform'] = { start: '/*', end: '*/' };
+        this.multiLineDelimiters['lua'] = { start: '--[[', end: ']]' };
+
+        this.supportedLanguages = Object.keys(this.singleLineDelimiters).concat(Object.keys(this.multiLineDelimiters));
+        this.supportedLanguages = [...new Set(this.supportedLanguages)]; //remove duplicates
+    }
+
+    public getSupportedLanguages(): string[] {
+        return this.supportedLanguages;
+    }
+
+    public async removeComments(editor: vscode.TextEditor, languageId: string, removeSingleLine: boolean, removeMultiLine: boolean): Promise<void> {
+        const document = editor.document;
+        const uri = document.uri;
+        const edit = new vscode.WorkspaceEdit();
+
+        if (!this.supportedLanguages.includes(languageId)) {
+            return Promise.reject(`Comments removal is not supported for ${languageId}.`);
+        }
+
+        if (removeSingleLine) {
+            this.removeSingleLineComments(document, edit, uri, languageId);
+        }
+        if (removeMultiLine) {
+            this.removeMultiLineComments(document, edit, uri, languageId);
+        }
+
+        await vscode.workspace.applyEdit(edit);
+        await editor.document.save();
+    }
+
+    private removeSingleLineComments(document: vscode.TextDocument, edit: vscode.WorkspaceEdit, uri: vscode.Uri, languageId: string) {
+        const delimiter = this.singleLineDelimiters[languageId];
+        if (!delimiter) {
+            return; // Language doesn't support single-line comments
+        }
+
+        const regEx = new RegExp(`(^|\\s)${delimiter.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}(?=(?:[^"'\`]*"[^"'\`]*")*(?:[^"'\`]*'[^"'\`]*')*(?:[^"'\`]*\`[^"'\`]*\`)*[^"'\`]*$)(?!(\\s*#!));`, "igm");
+
+        for (let lineIndex = 0; lineIndex < document.lineCount; lineIndex++) {
+            const line = document.lineAt(lineIndex);
+            const match = regEx.exec(line.text);
+            if (match) {
+                const startPos = new vscode.Position(lineIndex, match.index);
+                const endPos = new vscode.Position(lineIndex, line.text.length);
+                const range = new vscode.Range(startPos, endPos);
+                edit.delete(uri, range);
             }
         }
     }
 
-    public FindMultilineComments(activeEditor: vscode.TextEditor): void {
+    private removeMultiLineComments(document: vscode.TextDocument, edit: vscode.WorkspaceEdit, uri: vscode.Uri, languageId: string) {
+        const delimiters = this.multiLineDelimiters[languageId];
+        if (!delimiters) {
+            return; // Language doesn't support multi-line comments
+        }
 
-        if (!this.multilineComments) {
+        const startDelimiter = delimiters.start.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const endDelimiter = delimiters.end.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const regEx = new RegExp(`(^|[ \\t])(${startDelimiter})([\\s\\S]*?)(${endDelimiter})`, 'gm');
+        const text = document.getText();
+        let match;
+
+        while ((match = regEx.exec(text))) {
+            const startPos = document.positionAt(match.index);
+            const endPos = document.positionAt(match.index + match[0].length);
+            const range = new vscode.Range(startPos, endPos);
+            edit.delete(uri, range);
+        }
+    }
+}
+
+
+export function activate(context: vscode.ExtensionContext) {
+    const parser = new Parser();
+    let activeEditor = vscode.window.activeTextEditor;
+
+    const removeCommentsCommand = (removeSingleLine: boolean, removeMultiLine: boolean) => {
+        if (!activeEditor) {
+            vscode.window.showErrorMessage('No active text editor.');
             return;
         }
+        const languageId = activeEditor.document.languageId;
+        parser.removeComments(activeEditor, languageId, removeSingleLine, removeMultiLine)
+            .then(() => {
+                vscode.window.showInformationMessage('Comments removed.');
+            })
+            .then(undefined, (error: unknown) => {
+                vscode.window.showErrorMessage(`Error removing comments: ${error}`);
+            });
+    };
 
-        let text = activeEditor.document.getText();
-        let uri = activeEditor.document.uri;
-        let regEx: RegExp = /(^|[ \t])(\/\*[^*])+([\s\S]*?)(\*\/)/gm;
-        let match: any;
-
-        while (match = regEx.exec(text)) {
-
-            let startPos = activeEditor.document.positionAt(match.index);
-            let endPos = activeEditor.document.positionAt(match.index + match[0].length);
-            let range = new vscode.Range(startPos, endPos);
-            this.edit.delete(uri, range);
-
+    const removeAllCommentsCommand = vscode.commands.registerCommand('extension.removeAllComments', () => {
+        activeEditor = vscode.window.activeTextEditor;
+        if (activeEditor) {
+            removeCommentsCommand(true, true);
         }
+    });
 
-    }
-
-    private setDelimiter(languageCode: string): boolean {
-
-        this.supportedLanguage = true;
-        this.delimiters = [];
-        this.removeRanges = [];
-
-        switch (languageCode) {
-            case "al":
-            case "c":
-            case "cpp":
-            case "csharp":
-            case "css":
-            case "dart":
-            case "fsharp":
-            case "go":
-            case "haxe":
-            case "java":
-            case "javascript":
-            case "javascriptreact":
-            case "jsonc":
-            case "kotlin":
-            case "less":
-            case "pascal":
-            case "objectpascal":
-            case "php":
-            case "rust":
-            case "scala":
-            case "swift":
-            case "typescript":
-            case "typescriptreact":
-                this.delimiters.push("//");
-                this.removeRanges.push(true);
-                this.multilineComments = this.config;
-                break;
-
-            case "coffeescript":
-            case "dockerfile":
-            case "elixir":
-            case "graphql":
-            case "julia":
-            case "makefile":
-            case "perl":
-            case "perl6":
-            case "powershell":
-            case "python":
-            case "r":
-            case "ruby":
-            case "shellscript":
-            case "yaml":
-                this.delimiters.push("#");
-                this.removeRanges.push(true);
-                break;
-
-            case "ada":
-            case "haskell":
-            case "plsql":
-            case "sql":
-            case "lua":
-                this.delimiters.push("--");
-                this.removeRanges.push(true);
-                break;
-
-            case "vb":
-                this.delimiters.push("'");
-                this.removeRanges.push(true);
-                break;
-
-            case "erlang":
-            case "latex":
-                this.delimiters.push("%");
-                this.removeRanges.push(true);
-                break;
-
-            case "clojure":
-            case "racket":
-            case "lisp":
-                this.delimiters.push(";");
-                this.removeRanges.push(true);
-                break;
-
-            case "terraform":
-                this.delimiters.push("#");
-                this.removeRanges.push(true);
-                this.multilineComments = this.config;
-                break;
-
-            case "ACUCOBOL":
-            case "OpenCOBOL":
-            case "COBOL":
-                this.delimiters.push("\\*>");
-                this.removeRanges.push(true);
-                this.delimiters.push("^......\\*");
-                this.removeRanges.push(false);
-                this.multilineComments = false;
-                break;
-            default:
-                this.supportedLanguage = false;
-                break;
+    const removeSingleLineCommentsCommand = vscode.commands.registerCommand('extension.removeSingleLineComments', () => {
+        activeEditor = vscode.window.activeTextEditor;
+        if (activeEditor) {
+            removeCommentsCommand(true, false);
         }
+    });
 
-        return this.supportedLanguage;
-    }
+    const removeMultiLineCommentsCommand = vscode.commands.registerCommand('extension.removeMultiLineComments', () => {
+        activeEditor = vscode.window.activeTextEditor;
+        if (activeEditor) {
+            removeCommentsCommand(false, true);
+        }
+    });
 
+    context.subscriptions.push(removeAllCommentsCommand);
+    context.subscriptions.push(removeSingleLineCommentsCommand);
+    context.subscriptions.push(removeMultiLineCommentsCommand);
 }
+
+export function deactivate() { }
