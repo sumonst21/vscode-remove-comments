@@ -72,7 +72,7 @@
     "devDependencies": {
         "@types/jquery": "^3.5.32",
         "@types/mocha": "^2.2.42",
-        "@types/node": "^7.0.43",
+        "@types/node": "^22.13.16",
         "@types/vscode": "^1.98.0",
         "eslint": "^7.0.0",
         "standard-version": "^9.5.0",
