@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.3](https://github.com/sumonst21/vscode-remove-comments/compare/v0.0.2...v0.0.3) (2025-04-01)
+
+
+### Bug Fixes
+
+* update TSLint and TypeScript configurations; improve comment removal logic ([0baa4ba](https://github.com/sumonst21/vscode-remove-comments/commit/0baa4ba53281c47589f0b8cddc068a1f54855e70))
+
 ### 0.0.2 (2025-04-01)
 
 
